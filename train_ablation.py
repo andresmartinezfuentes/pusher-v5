@@ -1,4 +1,3 @@
-# train_ablation.py
 from __future__ import annotations
 
 import os
@@ -6,6 +5,7 @@ import json
 import time
 import argparse
 from collections import deque
+from typing import Callable
 
 import cv2
 import numpy as np
@@ -30,7 +30,7 @@ EVAL_EPISODES = 5
 
 
 class StepLimitWrapper(gym.Wrapper):
-    def __init__(self, env, max_steps=1000):
+    def __init__(self, env, max_steps: int = 1000):
         super().__init__(env)
         self.max_steps = max_steps
         self.current_step = 0
@@ -48,15 +48,19 @@ class StepLimitWrapper(gym.Wrapper):
 
 
 class FrameStack(gym.ObservationWrapper):
-    def __init__(self, env, k=3):
+    def __init__(self, env, k: int = 3):
         super().__init__(env)
         self.k = k
         self.frames = deque([], maxlen=k)
+
         img_space = env.observation_space["image"]
         shp = img_space.shape
         new_obs_space = dict(env.observation_space.spaces)
         new_obs_space["image"] = gym.spaces.Box(
-            low=0, high=255, shape=(shp[0] * k, shp[1], shp[2]), dtype=np.uint8
+            low=0,
+            high=255,
+            shape=(shp[0] * k, shp[1], shp[2]),
+            dtype=np.uint8,
         )
         self.observation_space = gym.spaces.Dict(new_obs_space)
 
@@ -81,9 +85,13 @@ class ResizeObservation(gym.ObservationWrapper):
     def __init__(self, env, shape=(64, 64)):
         super().__init__(env)
         self.shape = shape
+
         new_obs_space = dict(env.observation_space.spaces)
         new_obs_space["image"] = gym.spaces.Box(
-            low=0, high=255, shape=(3, shape[0], shape[1]), dtype=np.uint8
+            low=0,
+            high=255,
+            shape=(3, shape[0], shape[1]),
+            dtype=np.uint8,
         )
         self.observation_space = gym.spaces.Dict(new_obs_space)
 
@@ -92,7 +100,10 @@ class ResizeObservation(gym.ObservationWrapper):
         if img.shape[0] == 3:
             img = img.transpose(1, 2, 0)
         resized = cv2.resize(img, self.shape)
-        return {"image": resized.transpose(2, 0, 1), "features": obs["features"]}
+        return {
+            "image": resized.transpose(2, 0, 1),
+            "features": obs["features"],
+        }
 
 
 class DictObservationWrapper(gym.ObservationWrapper):
@@ -100,12 +111,17 @@ class DictObservationWrapper(gym.ObservationWrapper):
         super().__init__(env)
         img_space = env.observation_space
         feat_dim = env.unwrapped.observation_space.shape[0]
-        self.observation_space = gym.spaces.Dict({
-            "image": img_space,
-            "features": gym.spaces.Box(
-                low=-np.inf, high=np.inf, shape=(feat_dim,), dtype=np.float32
-            ),
-        })
+        self.observation_space = gym.spaces.Dict(
+            {
+                "image": img_space,
+                "features": gym.spaces.Box(
+                    low=-np.inf,
+                    high=np.inf,
+                    shape=(feat_dim,),
+                    dtype=np.float32,
+                ),
+            }
+        )
 
     def observation(self, obs):
         return {"image": obs, "features": self._last_features}
@@ -124,10 +140,18 @@ class DictObservationWrapper(gym.ObservationWrapper):
 
 
 class CurriculumRewardWrapper(gym.Wrapper):
-    def __init__(self, env, total_steps=100_000):
+    """
+    Reward shaping usado SOLO para entrenamiento cuando se activa.
+    No debe usarse en evaluación comparativa si queremos rewards comparables.
+    """
+    def __init__(self, env, total_steps: int = 100_000):
         super().__init__(env)
         self.total_steps = total_steps
         self.current_step = 0
+
+    def reset(self, **kwargs):
+        self.current_step = 0
+        return self.env.reset(**kwargs)
 
     def step(self, action):
         obs, _, done, truncated, info = self.env.step(action)
@@ -142,14 +166,14 @@ class CurriculumRewardWrapper(gym.Wrapper):
         dist_hand_obj = np.linalg.norm(tips_arm - obj_pos)
         dist_obj_goal = np.linalg.norm(obj_pos - goal_pos)
 
-        reach_reward = -dist_hand_obj * 5
-        push_reward = -dist_obj_goal * 5
-        reward = (1 - alpha) * reach_reward + alpha * push_reward
+        reach_reward = -dist_hand_obj * 5.0
+        push_reward = -dist_obj_goal * 5.0
+        reward = (1.0 - alpha) * reach_reward + alpha * push_reward
 
         if dist_hand_obj < 0.1:
-            reward += 5
+            reward += 5.0
         if dist_obj_goal < 0.1:
-            reward += 20
+            reward += 20.0
 
         reward -= 0.001 * np.sum(np.square(action))
         return obs, reward, done, truncated, info
@@ -174,29 +198,46 @@ class ImagesOnlyWrapper(gym.ObservationWrapper):
 
 
 class CombinedExtractor(BaseFeaturesExtractor):
-    def __init__(self, observation_space: gym.spaces.Dict,
-                 cnn_output_dim: int = 256,
-                 mlp_output_dim: int = 64):
-        super().__init__(observation_space, features_dim=cnn_output_dim + mlp_output_dim)
+    def __init__(
+        self,
+        observation_space: gym.spaces.Dict,
+        cnn_output_dim: int = 256,
+        mlp_output_dim: int = 64,
+    ):
+        super().__init__(
+            observation_space,
+            features_dim=cnn_output_dim + mlp_output_dim,
+        )
 
         img_space = observation_space["image"]
         feat_space = observation_space["features"]
         n_ch = img_space.shape[0]
 
         self.cnn = nn.Sequential(
-            nn.Conv2d(n_ch, 32, kernel_size=8, stride=4), nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, stride=2), nn.ReLU(),
-            nn.Conv2d(64, 128, kernel_size=3, stride=2), nn.ReLU(),
-            nn.Conv2d(128, 256, kernel_size=3, stride=2), nn.ReLU(),
-            nn.Flatten()
+            nn.Conv2d(n_ch, 32, kernel_size=8, stride=4),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=3, stride=2),
+            nn.ReLU(),
+            nn.Conv2d(64, 128, kernel_size=3, stride=2),
+            nn.ReLU(),
+            nn.Conv2d(128, 256, kernel_size=3, stride=2),
+            nn.ReLU(),
+            nn.Flatten(),
         )
-        with torch.no_grad():
-            n_flat = self.cnn(torch.as_tensor(img_space.sample()[None]).float()).shape[1]
 
-        self.cnn_linear = nn.Sequential(nn.Linear(n_flat, cnn_output_dim), nn.ReLU())
+        with torch.no_grad():
+            sample = torch.as_tensor(img_space.sample()[None]).float()
+            n_flat = self.cnn(sample).shape[1]
+
+        self.cnn_linear = nn.Sequential(
+            nn.Linear(n_flat, cnn_output_dim),
+            nn.ReLU(),
+        )
         self.mlp = nn.Sequential(
-            nn.Linear(feat_space.shape[0], 64), nn.ReLU(),
-            nn.Linear(64, mlp_output_dim), nn.ReLU()
+            nn.Linear(feat_space.shape[0], 64),
+            nn.ReLU(),
+            nn.Linear(64, mlp_output_dim),
+            nn.ReLU(),
         )
 
     def forward(self, observations):
@@ -211,17 +252,24 @@ class CNNOnlyExtractor(BaseFeaturesExtractor):
         n_ch = observation_space.shape[0]
 
         self.cnn = nn.Sequential(
-            nn.Conv2d(n_ch, 32, kernel_size=8, stride=4), nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, stride=2), nn.ReLU(),
-            nn.Conv2d(64, 128, kernel_size=3, stride=2), nn.ReLU(),
-            nn.Conv2d(128, 256, kernel_size=3, stride=2), nn.ReLU(),
-            nn.Flatten()
+            nn.Conv2d(n_ch, 32, kernel_size=8, stride=4),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=3, stride=2),
+            nn.ReLU(),
+            nn.Conv2d(64, 128, kernel_size=3, stride=2),
+            nn.ReLU(),
+            nn.Conv2d(128, 256, kernel_size=3, stride=2),
+            nn.ReLU(),
+            nn.Flatten(),
         )
+
         with torch.no_grad():
-            n_flat = self.cnn(torch.as_tensor(observation_space.sample()[None]).float()).shape[1]
+            sample = torch.as_tensor(observation_space.sample()[None]).float()
+            n_flat = self.cnn(sample).shape[1]
 
         self.linear = nn.Sequential(
-            nn.Linear(n_flat, cnn_output_dim), nn.ReLU()
+            nn.Linear(n_flat, cnn_output_dim),
+            nn.ReLU(),
         )
 
     def forward(self, observations):
@@ -230,7 +278,10 @@ class CNNOnlyExtractor(BaseFeaturesExtractor):
 
 
 class MetricsCallback(BaseCallback):
-    def __init__(self, verbose=0):
+    """
+    Guarda episodios para curva PNG y deja a SB3 escribir el resto en TensorBoard.
+    """
+    def __init__(self, verbose: int = 0):
         super().__init__(verbose)
         self.episode_rewards = []
         self.timesteps_at_ep = []
@@ -243,7 +294,25 @@ class MetricsCallback(BaseCallback):
         return True
 
 
-def make_env(variant: str, total_steps: int, img_size: int = 64):
+def make_env(
+    variant: str,
+    total_steps: int,
+    img_size: int = 64,
+    use_curriculum: bool = True,
+) -> Callable[[], gym.Env]:
+    """
+    variant controla SOLO la observación / política.
+    use_curriculum controla SOLO la recompensa del entorno.
+
+    Para entrenamiento:
+      - multimodal_curriculum       -> use_curriculum=True
+      - multimodal_no_curriculum    -> use_curriculum=False
+      - features_only               -> normalmente True
+      - images_only                 -> normalmente True
+
+    Para evaluación COMPARABLE:
+      - usar use_curriculum=False en todos.
+    """
     def _init():
         env = gym.make("Pusher-v5", render_mode="rgb_array")
         env = gym.wrappers.AddRenderObservation(env)
@@ -251,7 +320,7 @@ def make_env(variant: str, total_steps: int, img_size: int = 64):
         env = ResizeObservation(env, (img_size, img_size))
         env = FrameStack(env, k=3)
 
-        if variant != "multimodal_no_curriculum":
+        if use_curriculum:
             env = CurriculumRewardWrapper(env, total_steps=total_steps)
 
         if variant == "features_only":
@@ -262,20 +331,38 @@ def make_env(variant: str, total_steps: int, img_size: int = 64):
         env = StepLimitWrapper(env, max_steps=MAX_STEPS)
         env = Monitor(env)
         return env
+
     return _init
 
 
 def save_learning_curve(cb: MetricsCallback, out_path: str, title: str):
     if not cb.episode_rewards:
         return
+
     fig, ax = plt.subplots(figsize=(8, 4))
-    ax.plot(cb.timesteps_at_ep, cb.episode_rewards, alpha=0.35, linewidth=0.8, color="#90CAF9")
+    ax.plot(
+        cb.timesteps_at_ep,
+        cb.episode_rewards,
+        alpha=0.35,
+        linewidth=0.8,
+        color="#90CAF9",
+    )
+
     if len(cb.episode_rewards) >= 10:
         window = max(10, len(cb.episode_rewards) // 20)
-        smoothed = np.convolve(cb.episode_rewards, np.ones(window) / window, mode="valid")
-        x_sm = cb.timesteps_at_ep[window - 1:]
-        ax.plot(x_sm, smoothed, linewidth=2, color="#1565C0", label="Smoothed")
+        smoothed = np.convolve(
+            cb.episode_rewards, np.ones(window) / window, mode="valid"
+        )
+        x_sm = cb.timesteps_at_ep[window - 1 :]
+        ax.plot(
+            x_sm,
+            smoothed,
+            linewidth=2,
+            color="#1565C0",
+            label="Smoothed",
+        )
         ax.legend()
+
     ax.set_xlabel("Timesteps")
     ax.set_ylabel("Episode reward")
     ax.set_title(title)
@@ -284,7 +371,19 @@ def save_learning_curve(cb: MetricsCallback, out_path: str, title: str):
     plt.close(fig)
 
 
-def build_model(variant: str, env, device: str):
+def build_model(variant: str, env, device: str, tensorboard_root: str):
+    common_kwargs = dict(
+        learning_rate=1e-3,
+        batch_size=256,
+        buffer_size=100_000,
+        learning_starts=5_000,
+        train_freq=1,
+        gradient_steps=1,
+        verbose=1,
+        tensorboard_log=tensorboard_root,
+        device=device,
+    )
+
     if variant in ("multimodal_curriculum", "multimodal_no_curriculum"):
         return SAC(
             "MultiInputPolicy",
@@ -293,16 +392,9 @@ def build_model(variant: str, env, device: str):
                 features_extractor_class=CombinedExtractor,
                 features_extractor_kwargs=dict(cnn_output_dim=256, mlp_output_dim=64),
             ),
-            learning_rate=1e-3,
-            batch_size=256,
-            buffer_size=100_000,
-            learning_starts=5_000,
-            train_freq=1,
-            gradient_steps=1,
-            verbose=0,
-            tensorboard_log=None,
-            device=device,
+            **common_kwargs,
         )
+
     if variant == "images_only":
         return SAC(
             "CnnPolicy",
@@ -311,44 +403,58 @@ def build_model(variant: str, env, device: str):
                 features_extractor_class=CNNOnlyExtractor,
                 features_extractor_kwargs=dict(cnn_output_dim=256),
             ),
-            learning_rate=1e-3,
-            batch_size=256,
-            buffer_size=100_000,
-            learning_starts=5_000,
-            train_freq=1,
-            gradient_steps=1,
-            verbose=0,
-            tensorboard_log=None,
-            device=device,
+            **common_kwargs,
         )
+
     if variant == "features_only":
         return SAC(
             "MlpPolicy",
             env,
             policy_kwargs=dict(net_arch=[256, 256]),
-            learning_rate=1e-3,
-            batch_size=256,
-            buffer_size=100_000,
-            learning_starts=5_000,
-            train_freq=1,
-            gradient_steps=1,
-            verbose=0,
-            tensorboard_log=None,
-            device=device,
+            **common_kwargs,
         )
-    raise ValueError(f"Variant desconocida: {variant}")
+
+    raise ValueError(f"Unknown variant: {variant}")
 
 
-def train_variant(variant: str, out_dir: str, timesteps: int, img_size: int, device: str):
+def train_variant(
+    variant: str,
+    out_dir: str,
+    timesteps: int,
+    img_size: int,
+    device: str,
+    eval_common_reward: bool = True,
+):
     os.makedirs(out_dir, exist_ok=True)
 
-    train_env = DummyVecEnv([make_env(variant, timesteps, img_size=img_size)])
+    # Entrenamiento: solo multimodal_no_curriculum entrena sin shaping.
+    train_use_curriculum = variant != "multimodal_no_curriculum"
+
+    train_env = DummyVecEnv(
+        [make_env(variant, timesteps, img_size=img_size, use_curriculum=train_use_curriculum)]
+    )
     train_env = VecNormalize(train_env, norm_obs=False, norm_reward=True)
 
-    eval_env = DummyVecEnv([make_env(variant, timesteps, img_size=img_size)])
+    # Evaluación comparable:
+    # - mismo espacio de observación que el modelo
+    # - MISMA recompensa para todos si eval_common_reward=True
+    #   (sin curriculum reward)
+    eval_use_curriculum = not eval_common_reward
+    eval_env = DummyVecEnv(
+        [make_env(variant, timesteps, img_size=img_size, use_curriculum=eval_use_curriculum)]
+    )
     eval_env = VecNormalize(eval_env, norm_obs=False, norm_reward=False, training=False)
 
-    model = build_model(variant, train_env, device=device)
+    tb_root = os.path.join(out_dir, "tb")
+    os.makedirs(tb_root, exist_ok=True)
+
+    model = build_model(
+        variant=variant,
+        env=train_env,
+        device=device,
+        tensorboard_root=tb_root,
+    )
+
     metrics_cb = MetricsCallback()
     eval_cb = EvalCallback(
         eval_env,
@@ -361,11 +467,16 @@ def train_variant(variant: str, out_dir: str, timesteps: int, img_size: int, dev
     )
 
     t0 = time.time()
-    model.learn(total_timesteps=timesteps, callback=[metrics_cb, eval_cb])
+    model.learn(
+        total_timesteps=timesteps,
+        callback=[metrics_cb, eval_cb],
+        tb_log_name=variant,
+    )
     elapsed = time.time() - t0
 
     mean_r, std_r = evaluate_policy(
-        model, eval_env,
+        model,
+        eval_env,
         n_eval_episodes=EVAL_EPISODES,
         deterministic=True,
         return_episode_rewards=False,
@@ -373,7 +484,11 @@ def train_variant(variant: str, out_dir: str, timesteps: int, img_size: int, dev
 
     model.save(os.path.join(out_dir, "model_final"))
     train_env.save(os.path.join(out_dir, "vecnorm.pkl"))
-    save_learning_curve(metrics_cb, os.path.join(out_dir, "learning_curve.png"), f"Ablation ? {variant}")
+    save_learning_curve(
+        metrics_cb,
+        os.path.join(out_dir, "learning_curve.png"),
+        f"Ablation - {variant}",
+    )
 
     train_env.close()
     eval_env.close()
@@ -383,7 +498,12 @@ def train_variant(variant: str, out_dir: str, timesteps: int, img_size: int, dev
         "std_reward": float(std_r),
         "elapsed_sec": round(elapsed, 1),
         "n_episodes": len(metrics_cb.episode_rewards),
-        "final_ep_rew": float(np.mean(metrics_cb.episode_rewards[-20:])) if metrics_cb.episode_rewards else 0.0,
+        "final_ep_rew": float(np.mean(metrics_cb.episode_rewards[-20:]))
+        if metrics_cb.episode_rewards
+        else 0.0,
+        "train_use_curriculum": bool(train_use_curriculum),
+        "eval_use_curriculum": bool(eval_use_curriculum),
+        "eval_common_reward": bool(eval_common_reward),
     }
 
 
@@ -393,12 +513,13 @@ def save_ablation_plot(results, out_path: str):
     stds = [r["metrics"]["std_reward"] for r in results]
 
     fig, ax = plt.subplots(figsize=(9, 5))
-    colors = ["#1E88E5", "#43A047", "#FB8C00", "#E53935"][:len(labels)]
+    colors = ["#1E88E5", "#43A047", "#FB8C00", "#E53935"][: len(labels)]
+
     ax.bar(range(len(labels)), means, yerr=stds, capsize=4, color=colors)
     ax.set_xticks(range(len(labels)))
     ax.set_xticklabels(labels, rotation=15, ha="right")
-    ax.set_ylabel("Mean Eval Reward")
-    ax.set_title("Ablation Study ? Final Evaluation")
+    ax.set_ylabel("Mean eval reward")
+    ax.set_title("Ablation study - final evaluation")
     plt.tight_layout()
     plt.savefig(out_path, dpi=140)
     plt.close(fig)
@@ -412,10 +533,25 @@ def main():
     parser.add_argument("--img_size", type=int, default=64)
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument(
+        "--eval_common_reward",
+        action="store_true",
+        help="Evaluate all variants with the same reward definition (no curriculum reward). Recommended for fair comparison.",
+    )
+    parser.add_argument(
         "--variants",
         nargs="+",
-        default=["multimodal_curriculum", "multimodal_no_curriculum", "features_only", "images_only"],
-        choices=["multimodal_curriculum", "multimodal_no_curriculum", "features_only", "images_only"],
+        default=[
+            "multimodal_curriculum",
+            "multimodal_no_curriculum",
+            "features_only",
+            "images_only",
+        ],
+        choices=[
+            "multimodal_curriculum",
+            "multimodal_no_curriculum",
+            "features_only",
+            "images_only",
+        ],
     )
     args = parser.parse_args()
 
@@ -432,9 +568,13 @@ def main():
             timesteps=args.timesteps,
             img_size=args.img_size,
             device=device,
+            eval_common_reward=args.eval_common_reward,
         )
         all_results.append({"variant": variant, "metrics": metrics})
-        print(f"mean_reward={metrics['mean_reward']:.2f} � {metrics['std_reward']:.2f} | time={metrics['elapsed_sec']:.0f}s")
+        print(
+            f"mean_reward={metrics['mean_reward']:.2f} ± {metrics['std_reward']:.2f} | "
+            f"time={metrics['elapsed_sec']:.0f}s"
+        )
 
     summary_path = os.path.join(args.out_dir, "ablation_summary.json")
     with open(summary_path, "w", encoding="utf-8") as f:
@@ -442,6 +582,10 @@ def main():
 
     save_ablation_plot(all_results, os.path.join(args.out_dir, "ablation_comparison.png"))
     print(f"[saved] {summary_path}")
+    print(
+        "\nTensorBoard example:\n"
+        f"  tensorboard --logdir {args.out_dir} --port 6006\n"
+    )
 
 
 if __name__ == "__main__":
