@@ -354,34 +354,44 @@ Con este objetivo, se plantea un estudio de ablación centrado en tres elementos
 
 \subsection{Configuración experimental}
 
-Para mantener el coste computacional dentro del tiempo disponible, los experimentos de ablación se proponen sobre un número reducido de pasos de entrenamiento, manteniendo el resto de hiperparámetros fijos. En concreto, se consideran las siguientes variantes:
+Para mantener el coste computacional dentro del tiempo disponible, los experimentos de ablación se plantean manteniendo el resto de hiperparámetros fijos y modificando únicamente los componentes cuyo efecto se quiere aislar. En concreto, se consideran las siguientes variantes:
 
 \begin{itemize}
-    \item \textbf{Sin curriculum reward}: se elimina el shaping progresivo de la recompensa y se entrena al agente sin la interpolación entre \textit{reach} y \textit{push}.
+    \item \textbf{Multimodal con curriculum}: configuración completa del proyecto, que combina observaciones visuales, observaciones tabulares y reward shaping progresivo.
+    \item \textbf{Multimodal sin curriculum}: misma arquitectura multimodal, pero eliminando el shaping progresivo de la recompensa.
     \item \textbf{Solo features}: el agente recibe únicamente observaciones tabulares, eliminando por completo la rama visual.
     \item \textbf{Solo imágenes}: el agente recibe únicamente observaciones visuales, eliminando la información propioceptiva.
 \end{itemize}
 
-Estas tres configuraciones permiten aislar la contribución de la recompensa diseñada y de las dos fuentes principales de información utilizadas en el modelo híbrido.
+Estas variantes permiten aislar la contribución de la recompensa diseñada y de las dos fuentes principales de información utilizadas en el modelo final. Además, para que la comparación entre configuraciones sea interpretable, las variantes se evalúan mediante una recompensa común, evitando que las conclusiones dependan únicamente de la escala específica de cada shaping durante el entrenamiento.
 
-Siempre que sea posible, estas variantes se evaluarán no solo mediante recompensa acumulada, sino también mediante episodios de evaluación visual y análisis cualitativo del comportamiento, siguiendo el mismo procedimiento utilizado para el modelo principal.
+\textbf{TODO: especificar aquí el número exacto de timesteps usado en las ablaciones finales.}
 
-\textbf{TODO: especificar aquí el número exacto de timesteps usado en las ablaciones (por ejemplo 20\,000, 50\,000 o 100\,000).}
+\subsection{Resultados y discusión}
 
-\subsection{Resultados esperados y discusión}
+A diferencia de una comparación basada únicamente en la recompensa final, en esta sección se analiza la evolución temporal de la recompensa durante el entrenamiento para cada una de las configuraciones consideradas. Esta perspectiva resulta más informativa, ya que permite observar no solo qué variante termina mejor, sino también cuál aprende antes, cuál es más estable y cuál presenta trayectorias de aprendizaje más erráticas.
 
-Desde el punto de vista conceptual, este estudio de ablación permite validar varias de las hipótesis planteadas a lo largo del trabajo. En primer lugar, si la versión sin curriculum reward empeora claramente, se refuerza la idea de que la recompensa diseñada ayuda a estructurar la exploración del agente. En segundo lugar, si la variante solo imágenes vuelve a mostrar un rendimiento pobre, ello confirmará que el canal visual, por sí solo, no resulta suficiente bajo las restricciones computacionales de esta práctica. Finalmente, si la variante solo features aprende mejor que la variante solo imágenes, podrá concluirse que gran parte de la señal útil de control se encuentra en la información tabular.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\textwidth]{figuras/ablation_learning_curves.png}
+    \caption{Curvas de recompensa durante el entrenamiento para las distintas variantes del estudio de ablación. La comparación permite analizar diferencias en velocidad de aprendizaje, estabilidad y rendimiento final.}
+    \label{fig:ablation_curves}
+\end{figure}
+
+La Figura \ref{fig:ablation_curves} constituye el resultado principal del estudio de ablación. A través de estas curvas puede analizarse si la representación multimodal aporta una ventaja sistemática frente a las variantes unimodales, así como el efecto del curriculum reward sobre la estabilidad del aprendizaje. En particular, esta representación permite distinguir entre configuraciones que aprenden rápidamente pero se estancan, configuraciones más lentas pero estables y configuraciones que apenas logran superar la exploración inicial.
+
+Como apoyo complementario, también puede resumirse el comportamiento final de cada variante mediante una figura agregada de evaluación, aunque el foco principal del análisis se sitúa en la dinámica temporal del entrenamiento.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.45\textwidth]{figuras/ablation_comparison.png}
-    \caption{Comparación de las distintas configuraciones del estudio de ablación.}
+    \caption{Resumen de evaluación final de las configuraciones del estudio de ablación. Esta figura se interpreta de forma complementaria a las curvas de aprendizaje, no como resultado principal aislado.}
     \label{fig:ablation}
 \end{figure}
 
-\textbf{TODO: sustituir este texto por resultados reales en cuanto termine la ablación y esté disponible la figura definitiva \texttt{ablation\_comparison.png}.}
+Desde el punto de vista conceptual, este estudio permite validar varias de las hipótesis planteadas a lo largo del trabajo. Si la variante solo imágenes vuelve a mostrar un rendimiento pobre, se refuerza la idea de que el canal visual, por sí solo, no resulta suficiente bajo las restricciones computacionales de esta práctica. Si la variante solo features aprende mejor que la variante solo imágenes, podrá concluirse que gran parte de la señal útil de control se encuentra en la información tabular. Finalmente, la comparación entre las dos variantes multimodales permitirá valorar hasta qué punto el curriculum reward facilita la exploración y acelera el aprendizaje.
 
-\textbf{TODO: si da tiempo, añadir también curvas de aprendizaje comparadas para baseline, sin curriculum, solo features y solo imágenes.}
+\textbf{TODO: sustituir este bloque por la interpretación final cuando estén disponibles las curvas definitivas de ablación.}
 
 \subsection{Conclusiones de la Parte 3}
 
