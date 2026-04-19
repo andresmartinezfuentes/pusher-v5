@@ -1,0 +1,21 @@
+Orden exacto de ejecución recomendado
+
+Primero:
+
+python evaluate_pusher.py --model sac_pusher_combined.zip --vecnorm sac_pusher_vecnormalize.pkl --n_episodes 5 --out_dir ./eval_results
+
+Luego:
+
+python extract_rollout_frames.py --gif ./eval_results/ep00_rollout.gif --n_frames 6
+
+Luego:
+
+python summarize_grid_results.py --summary ./grid_results/grid_summary.json --out_dir ./grid_results/report_assets
+
+Y por último:
+
+python train_ablation.py --timesteps 100000 --img_size 64 --out_dir ./ablation_results
+
+Si vais muy justos:
+
+python train_ablation.py --timesteps 50000 --img_size 64 --out_dir ./ablation_results
