@@ -18,6 +18,10 @@
 
 \geometry{margin=1.8cm}
 \setlength{\columnsep}{0.7cm}
+\setlength{\textfloatsep}{8pt}
+\setlength{\floatsep}{6pt}
+\setlength{\intextsep}{6pt}
+\captionsetup{font=small, skip=4pt}
 \hypersetup{
     colorlinks=true,
     linkcolor=blue,
@@ -35,9 +39,15 @@ en control continuo}}
 \twocolumn[
 \maketitle
 \begin{abstract}
-En esta práctica se estudia el uso del algoritmo Soft Actor-Critic (SAC) en entornos de control continuo, centrándose en tareas de manipulación robótica simuladas. Se analiza su rendimiento en el entorno \texttt{Pusher-v5}, así como la influencia de distintos hiperparámetros en la estabilidad y eficiencia del aprendizaje. Los resultados muestran que el uso exclusivo de observaciones visuales sin técnicas de data agumentation o similares no es suficiente para lograr políticas estables, mientras que la combinación con información tabular mejora significativamente el rendimiento y la convergencia del agente. Adicionalmente, se observa que el algoritmo SAC es robusto pero altamente sensible a la elección de hiperparámetros como la tasa de aprendizaje, el tamaño de la representación latente y la resolución de las imágenes de entrada. codigo: \url{https://github.com/andresmartinezfuentes/pusher-v5}
+En esta práctica se estudia el uso del algoritmo Soft Actor-Critic (SAC) en tareas de manipulación robótica simuladas dentro del entorno \texttt{Pusher-v5}. Se analiza su rendimiento y la influencia de distintos hiperparámetros en la estabilidad del aprendizaje.
+
+Los resultados muestran que el uso exclusivo de observaciones visuales no es suficiente para aprender políticas estables, mientras que la combinación con información tabular mejora claramente el rendimiento. Además, SAC resulta robusto, pero sensible a la elección de hiperparámetros como la tasa de aprendizaje o la resolución de entrada.
+
+Por último, se observa la importancia de la alineación entre la función de recompensa utilizada durante el entrenamiento y la métrica de evaluación final.
+
+Código disponible en: \url{https://github.com/andresmartinezfuentes/pusher-v5}
 \end{abstract}
-\vspace{0.4cm}
+\vspace{0.2cm}
 ]
 
 \section{Introducción}
@@ -121,7 +131,7 @@ Inicialmente, como se ha comentado, completamos una ejecución del experimento e
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.45\textwidth]{figuras/reward_base_imagenes.png}
+    \includegraphics[width=0.41\textwidth]{figuras/reward_base_imagenes.png}
     \caption{Evolución de la recompensa durante el entrenamiento usando únicamente observaciones visuales. La curva permanece en valores negativos y no muestra evidencia clara de resolución de la tarea.}
     \label{fig:reward_base}
 \end{figure}
@@ -132,7 +142,7 @@ De manera complementaria, para justificar el uso de las imágenes como input rea
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.45\textwidth]{figuras/ep02_saliency_summary.png}
+    \includegraphics[width=0.41\textwidth]{figuras/ep02_saliency_summary.png}
     \caption{Resumen del análisis de saliency en el episodio 2 de evaluación. La atención del modelo se concentra principalmente en la zona de interacción entre actuador, objeto y objetivo.}
     \label{fig:saliency}
 \end{figure}
@@ -145,7 +155,7 @@ Los resultados del experimento principal muestran que el agente es capaz de apre
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.45\textwidth]{figuras/reward_final.png}
+    \includegraphics[width=0.41\textwidth]{figuras/reward_final.png}
     \caption{Evolución de la recompensa durante el entrenamiento del modelo híbrido RGB + propiocepción. Se observa una mejora clara con respecto al caso solo visual, aunque persisten oscilaciones en la dinámica de aprendizaje.}
     \label{fig:reward_final}
 \end{figure}
@@ -158,7 +168,7 @@ Adicionalmente, los episodios de evaluación permiten analizar de forma cualitat
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.48\textwidth]{figuras/rollout_frames_ep02.png}
+    \includegraphics[width=0.43\textwidth]{figuras/rollout_frames_ep02.png}
     \caption{Secuencia de frames extraída del episodio 2 de evaluación. Se observa una política más estructurada, con fases de aproximación al objeto y empuje hacia la región objetivo.}
     \label{fig:rollout_frames}
 \end{figure}
@@ -185,7 +195,7 @@ Los resultados del grid search muestran que el rendimiento del agente es altamen
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.45\textwidth]{figuras/grid_comparison.png}
+    \includegraphics[width=0.41\textwidth]{figuras/grid_comparison.png}
     \caption{Comparación global de las configuraciones evaluadas en el grid search. Se observan diferencias importantes tanto en recompensa final como en coste temporal entre configuraciones.}
     \label{fig:grid_comparison}
 \end{figure}
@@ -194,7 +204,7 @@ La tasa de aprendizaje tiene un impacto significativo en la dinámica de entrena
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.45\textwidth]{figuras/grid_lr4.png}
+    \includegraphics[width=0.41\textwidth]{figuras/grid_lr4.png}
     \caption{Comparación de runs con learning rate \(1\times10^{-4}\). La evolución es en general más conservadora, aunque el rendimiento final depende de la combinación con el resto de hiperparámetros.}
     \label{fig:grid_lr4}
 \end{figure}
@@ -203,7 +213,7 @@ En comparación, como se puede observar en las Figuras \ref{fig:grid_lr3} y \ref
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.45\textwidth]{figuras/grid_lr3.png}
+    \includegraphics[width=0.41\textwidth]{figuras/grid_lr3.png}
     \caption{Comparación de runs con learning rate \(1\times10^{-3}\). Esta tasa permite alcanzar algunas de las mejores recompensas finales, pero también presenta trayectorias más inestables.}
     \label{fig:grid_lr3}
 \end{figure}
@@ -212,14 +222,14 @@ En cuanto a la arquitectura del extractor de características, se observa que el
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.45\textwidth]{figuras/grid_mlp32.png}
+    \includegraphics[width=0.41\textwidth]{figuras/grid_mlp32.png}
     \caption{Runs con dimensión de salida MLP igual a 32. El rendimiento depende también del learning rate y de la resolución empleada.}
     \label{fig:grid_mlp32}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.45\textwidth]{figuras/grid_mlp64.png}
+    \includegraphics[width=0.41\textwidth]{figuras/grid_mlp64.png}
     \caption{Runs con dimensión de salida MLP igual a 64. Algunas configuraciones alcanzan las mejores recompensas finales del estudio, aunque con variabilidad entre ejecuciones.}
     \label{fig:grid_mlp64}
 \end{figure}
@@ -228,14 +238,14 @@ Como se puede ver en las Figuras \ref{fig:grid_mlp32} y \ref{fig:grid_mlp64}, el
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.45\textwidth]{figuras/grid_img128.png}
+    \includegraphics[width=0.41\textwidth]{figuras/grid_img128.png}
     \caption{Runs con resolución de entrada \(128\times128\). Se observa un mayor coste computacional y, en general, peores resultados que con \(64\times64\).}
     \label{fig:grid_img128}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.45\textwidth]{figuras/grid_img64.png}
+    \includegraphics[width=0.41\textwidth]{figuras/grid_img64.png}
     \caption{Runs con resolución de entrada \(64\times64\). Estas configuraciones muestran, en conjunto, mejores recompensas y mayor eficiencia computacional.}
     \label{fig:grid_img64}
 \end{figure}
@@ -317,64 +327,73 @@ Este análisis confirma la importancia de una correcta selección de hiperparám
 
 \subsection{Motivación}
 
-Aunque en las secciones anteriores se ha observado que el enfoque multimodal junto con el uso de curriculum learning permite obtener políticas razonables, todavía no está claro qué componentes del sistema son realmente los responsables de esta mejora. Es decir, no basta con comprobar que el modelo completo funciona, sino que tambien se necesita entender qué aporta cada una de las partes.
+Aunque en las secciones anteriores se ha observado que el enfoque multimodal junto con el uso de curriculum learning permite obtener políticas razonables, todavía no está claro qué componentes del sistema son realmente los responsables de esta mejora. Es decir, no basta con comprobar que el modelo completo funciona, sino que también es necesario entender qué aporta cada una de sus partes.
 
-Con este objetivo, se planteó un estudio de ablación en el que se analizó de forma separada tres elementos clave del proyecto: el uso del reward shaping basado en curriculum, la información tabular propioceptiva y la información visual. Este análisis permite estudiar hasta qué punto el rendimiento final depende de cada uno de estos factores y si realmente todos ellos son necesarios.
+Con este objetivo, se planteó un estudio de ablación en el que se analizó por separado tres elementos clave del proyecto: el uso del reward shaping basado en curriculum, la información tabular propioceptiva y la información visual. Este análisis permite estudiar hasta qué punto el rendimiento final depende de cada uno de estos factores y si realmente todos ellos son necesarios.
 
 \subsection{Configuración experimental}
 
-Para que la comparación sea lo más limpia y justa posible, todas las variantes se entrenan manteniendo los mismos hiperparámetros y el mismo entorno, modificando únicamente los componentes que se quieren analizar. En concreto, se consideran las siguientes configuraciones:
+Para que la comparación sea lo más limpia y justa posible, todas las variantes se entrenan manteniendo los mismos hiperparámetros y el mismo entorno, modificando únicamente los componentes que se quieren analizar.
+
+En concreto, se consideran las siguientes configuraciones:
 
 \begin{itemize}
-    \item \textbf{Multimodal con curriculum}: modelo completo, que utiliza imágenes, features tabulares y reward shaping progresivo.
-    \item \textbf{Multimodal sin curriculum}: misma arquitectura multimodal, pero sin el esquema de curriculum en la recompensa.
-    \item \textbf{Solo features}: el agente recibe únicamente observaciones tabulares.
-    \item \textbf{Solo imágenes}: el agente recibe únicamente observaciones visuales.
+    \item \textbf{Multimodal con curriculum}: modelo completo, que utiliza imágenes, features tabulares y reward shaping progresivo durante el entrenamiento.
+    \item \textbf{Multimodal sin curriculum}: misma arquitectura multimodal, pero entrenada directamente con la recompensa original del entorno.
+    \item \textbf{Solo features}: el agente recibe únicamente observaciones tabulares y se entrena con la recompensa original.
+    \item \textbf{Solo imágenes}: el agente recibe únicamente observaciones visuales y se entrena con la recompensa original.
 \end{itemize}
 
-Todas las variantes se entrenan durante 300\,000 pasos y se evalúan utilizando una misma recompensa común, de forma que la comparación no dependa de la escala de la reward utilizada durante el entrenamiento.
+Todas las variantes se entrenan durante 300\,000 pasos. Para poder comparar los resultados de forma consistente, todas las políticas se evalúan utilizando una misma recompensa común, es decir, la recompensa original del entorno, independientemente de la función de recompensa empleada durante el entrenamiento.
 
 \subsection{Resultados y discusión}
+
 Para analizar los resultados no se ha considerado solo la recompensa final, sino también su evolución a lo largo del entrenamiento. Esto permite ver mejor cómo aprende cada modelo, si lo hace de forma estable y si la mejora es progresiva o depende de momentos concretos.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.48\textwidth]{figuras/ablation_eval_and_training.png}
+    \includegraphics[width=0.43\textwidth]{figuras/ablation_eval_and_training.png}
     \caption{Arriba: recompensa media de evaluación durante el entrenamiento para cada variante. Abajo: recompensa media por episodio durante el entrenamiento.}
     \label{fig:ablation_curves}
 \end{figure}
 
 En la parte superior de la Figura \ref{fig:ablation_curves} se ve la recompensa de evaluación, que es la métrica más importante para comparar las distintas configuraciones. Se observa claramente que la variante \textit{multimodal sin curriculum} es la que mejor rinde durante casi todo el entrenamiento. Además, su curva es bastante estable, con pocas oscilaciones, lo que sugiere un aprendizaje robusto.
 
-La variante \textit{solo features} se sitúa la segunda. Aunque no llega al nivel de la mejor configuración, su rendimiento es razonable y mejora por mucho al de solo imagénes. Esto sugiere que la información tabular es la parte más necesaria para resolver la tarea.
+La variante \textit{solo features} se sitúa en segundo lugar. Aunque no llega al nivel de la mejor configuración, su rendimiento es razonable y mejora claramente al de solo imágenes. Esto sugiere que la información tabular es la parte más necesaria para resolver la tarea.
 
 La variante \textit{multimodal con curriculum} tiene un comportamiento más irregular. En algunos tramos se acerca a \textit{solo features}, pero no logra superarla al final y termina ligeramente por debajo. Además, la curva oscila más, lo que indica una mayor inestabilidad.
 
-Por último, la variante \textit{solo imágenes} queda claramente por debajo del resto durante todo el entrenamiento. Apenas muestra una mejora apreciable, lo que indica que, en las condiciones de esta práctica, la información visual por sí sola no es suficiente para aprender una política útil (eso no significa que no aporte al aprendizaje en la parte multimodal).
+Por último, la variante \textit{solo imágenes} queda claramente por debajo del resto durante todo el entrenamiento. Apenas muestra una mejora apreciable, lo que indica que, en las condiciones de esta práctica, la información visual por sí sola no es suficiente para aprender una política útil, aunque eso no significa que no aporte al aprendizaje en la parte multimodal.
 
 La parte inferior de la figura muestra la recompensa de entrenamiento, y aquí aparece un resultado interesante. La variante \textit{solo features} alcanza valores muy altos, incluso mejores que los del modelo multimodal. Sin embargo, esa ventaja no se traduce del todo en la evaluación final. Algo parecido ocurre con la variante \textit{multimodal con curriculum}, que también logra recompensas de entrenamiento altas pero no obtiene el mejor rendimiento en evaluación.
 
-En cambio, la variante \textit{multimodal sin curriculum}, que es la mejor en evaluación, presenta valores de recompensa de entrenamiento más modestos y bastante planos. Esto nos sugiere que optimizar más la reward durante el entrenamiento no implica necesariamente obtener una mejor política final cuando se evalúa con una métrica común.
+En cambio, la variante \textit{multimodal sin curriculum}, que es la mejor en evaluación, presenta valores de recompensa de entrenamiento más modestos y bastante planos. Esto sugiere que optimizar más la reward durante el entrenamiento no implica necesariamente obtener una mejor política final cuando se evalúa con una métrica común.
 
-Este resultado es relevante, ya que indica que el reward shaping puede ser útil para guiar la exploración, pero no siempre está completamente alineado con el objetivo final de la tarea.
+Este resultado es especialmente relevante. En las variantes con curriculum, el agente se entrena utilizando una función de recompensa modificada que enfatiza subtareas intermedias, como la aproximación al objeto o el contacto inicial. Este diseño facilita la exploración y permite alcanzar recompensas más altas durante el entrenamiento.
 
-Para completar el análisis, en la Figura \ref{fig:ablation} se muestra un resumen de la evaluación final de cada variante. Esta figura confirma lo observado en las curvas: la mejor configuración es la multimodal sin curriculum, seguida de la variante solo features, mientras que usar únicamente imágenes produce los peores resultados.
+Sin embargo, en la fase de evaluación todas las configuraciones se comparan utilizando la recompensa original del entorno, sin aplicar dicho shaping. Como consecuencia, las políticas entrenadas con curriculum no están necesariamente optimizadas para esta métrica final, ya que han sido guiadas por una señal de aprendizaje distinta.
+
+Esto explica por qué la variante \textit{multimodal sin curriculum} obtiene mejores resultados en evaluación, a pesar de que durante el entrenamiento el curriculum produce recompensas más altas y comportamientos más estructurados. En este sentido, el resultado no implica que el curriculum sea perjudicial, sino que pone de manifiesto una desalineación entre la función de entrenamiento y la métrica de evaluación.
+
+Para completar el análisis, en la Figura \ref{fig:ablation} se muestra un resumen de la evaluación final de cada variante. Esta figura confirma lo observado en las curvas: bajo la métrica de evaluación utilizada, la mejor configuración es la multimodal sin curriculum, seguida de la variante solo features, mientras que usar únicamente imágenes produce los peores resultados.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.45\textwidth]{figuras/ablation_comparison.png}
+    \includegraphics[width=0.41\textwidth]{figuras/ablation_comparison.png}
     \caption{Recompensa media de evaluación final para cada variante del estudio de ablación.}
     \label{fig:ablation}
 \end{figure}
 
-
 \subsection{Conclusiones de la Parte 3}
 
-El estudio de ablación permite extraer varias conclusiones importantes. En primer lugar, la información tabular es fundamental para el aprendizaje de la tarea, ya que incluso sin la parte visual el agente es capaz de aprender políticas razonables. En segundo lugar, el uso exclusivo de imágenes no es suficiente bajo las limitaciones de resolución y computación de esta práctica, quizá con más pasos aprendería a hacerlo, pero con 300k steps está muy lejos de hacerlo.
+El estudio de ablación permite extraer varias conclusiones importantes. En primer lugar, la información tabular es fundamental para el aprendizaje de la tarea, ya que incluso sin la parte visual el agente es capaz de aprender políticas razonables. En segundo lugar, el uso exclusivo de imágenes no es suficiente bajo las limitaciones de resolución y computación de esta práctica; quizá con más pasos podría mejorar, pero con 300k \textit{steps} sigue estando muy lejos del resto de configuraciones.
 
-Por otro lado, la combinación multimodal sí aporta beneficios, pero el uso de curriculum learning en la recompensa no parece mejorar el rendimiento final en este caso. De hecho, la mejor configuración es la que utiliza información multimodal sin aplicar shaping progresivo. 
+Por otro lado, la combinación multimodal sí aporta beneficios. Sin embargo, el uso de curriculum learning en la recompensa no mejora el rendimiento final bajo la métrica de evaluación utilizada. En concreto, la mejor configuración en evaluación es la multimodal sin curriculum.
+
+Este resultado debe interpretarse con cuidado, ya que las variantes con curriculum se entrenan con una función de recompensa distinta a la utilizada en evaluación. Como se ha visto, el curriculum permite obtener recompensas de entrenamiento más altas y facilita la exploración, pero su señal no está completamente alineada con la métrica final. Esto puede hacer que las políticas aprendidas no se traduzcan directamente en mejores resultados bajo la recompensa original.
 
 Finalmente, el análisis conjunto de la recompensa de entrenamiento y de evaluación pone de manifiesto que ambas no siempre cuentan la misma historia. Algunas configuraciones optimizan muy bien la reward interna del entrenamiento, pero no generan las mejores políticas cuando se evalúan con una métrica común. Esto refuerza la importancia de analizar no solo el valor final de la recompensa, sino también la dinámica de aprendizaje y la coherencia entre las distintas métricas.
+
 \section{Conclusión general}
 
 A lo largo de este trabajo se ha estudiado el comportamiento de SAC en una tarea de manipulación robótica continua dentro del entorno \texttt{Pusher-v5}. Los resultados obtenidos muestran que el algoritmo es capaz de aprender políticas útiles, pero también que su rendimiento depende en gran medida de cómo se representa el estado, de cómo se diseña la recompensa y de cómo se ajustan los hiperparámetros del entrenamiento.
@@ -383,7 +402,9 @@ En primer lugar, se ha comprobado que el uso exclusivo de imágenes no es sufici
 
 En segundo lugar, el estudio de sensibilidad a hiperparámetros confirma que pequeñas variaciones en parámetros como la tasa de aprendizaje o la resolución de entrada pueden producir comportamientos muy distintos. En particular, las configuraciones con imágenes de \(64\times64\) han resultado más eficientes y, en conjunto, más efectivas que las de \(128\times128\), lo que pone de manifiesto la importancia de equilibrar calidad de representación y coste de entrenamiento.
 
-Por último, el estudio de ablación ha permitido entender mejor qué componentes explican realmente la mejora del sistema. Los resultados muestran que la información tabular desempeña un papel fundamental, que el uso exclusivo de imágenes produce los peores resultados y que, en esta implementación concreta, la variante multimodal sin curriculum alcanza el mejor rendimiento final bajo una recompensa común de evaluación. Esto sugiere que una reward de entrenamiento más alta no siempre implica una mejor política final.
+Por último, el estudio de ablación ha permitido entender mejor qué componentes explican realmente la mejora del sistema. Los resultados muestran que la información tabular desempeña un papel fundamental, que el uso exclusivo de imágenes produce los peores resultados y que, en esta implementación concreta, la variante multimodal sin curriculum alcanza el mejor rendimiento final bajo la métrica de evaluación utilizada.
+
+Este resultado no implica que el curriculum learning sea perjudicial, sino que pone de manifiesto la importancia de la alineación entre la función de recompensa utilizada durante el entrenamiento y la métrica de evaluación final. En este caso, el curriculum facilita el aprendizaje y mejora la dinámica de entrenamiento, pero su señal no coincide completamente con la recompensa empleada en evaluación, lo que limita su impacto en los resultados finales.
 
 \section*{Trabajo futuro}
 
