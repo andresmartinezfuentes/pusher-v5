@@ -301,7 +301,7 @@ def make_env(
     use_curriculum: bool = True,
 ) -> Callable[[], gym.Env]:
     """
-    variant controla SOLO la observaci�n / pol�tica.
+    variant controla SOLO la observacion / politica.
     use_curriculum controla SOLO la recompensa del entorno.
 
     Para entrenamiento:
@@ -310,7 +310,7 @@ def make_env(
       - features_only               -> normalmente True
       - images_only                 -> normalmente True
 
-    Para evaluaci�n COMPARABLE:
+    Para evaluacion COMPARABLE:
       - usar use_curriculum=False en todos.
     """
     def _init():
@@ -435,8 +435,8 @@ def train_variant(
     )
     train_env = VecNormalize(train_env, norm_obs=False, norm_reward=True)
 
-    # Evaluaci�n comparable:
-    # - mismo espacio de observaci�n que el modelo
+    # Evaluacion comparable:
+    # - mismo espacio de observacion que el modelo
     # - MISMA recompensa para todos si eval_common_reward=True
     #   (sin curriculum reward)
     eval_use_curriculum = not eval_common_reward
